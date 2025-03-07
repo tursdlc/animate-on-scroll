@@ -26,6 +26,30 @@ function cba_register_block_editor_assets() {
 }
 add_action('enqueue_block_editor_assets', 'cba_register_block_editor_assets');
 
+// Enqueue SAL.js and SAL.css on the frontend
+function cba_enqueue_frontend_assets() {
+    // Only enqueue on the frontend, not in the admin
+    if (!is_admin()) {
+        // Enqueue SAL.js
+        wp_enqueue_script(
+            'sal-js',
+            plugins_url('sal.js', __FILE__),
+            array(),
+            '1.0.0',
+            true
+        );
+        
+        // Enqueue SAL.css
+        wp_enqueue_style(
+            'sal-css',
+            plugins_url('sal.css', __FILE__),
+            array(),
+            '1.0.0'
+        );
+    }
+}
+add_action('wp_enqueue_scripts', 'cba_enqueue_frontend_assets');
+
 // Filter block output to add data attributes
 function cba_filter_block_output($block_content, $block) {
     if (empty($block['attrs']['dataAttributes'])) {
