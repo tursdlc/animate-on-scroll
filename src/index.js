@@ -9,12 +9,42 @@ addFilter(
     'blocks.registerBlockType',
     'custom-block-attributes/add-attributes',
     (settings) => {
+        // Store the original save function
+        const originalSave = settings.save;
+
+        // Create a new save function that wraps the original
+        settings.save = (props) => {
+            // Get the original save element
+            const element = originalSave(props);
+            
+            if (!element || !props.attributes.dataAttributes || props.attributes.dataAttributes.length === 0) {
+                return element;
+            }
+            
+            // Clone the element to avoid modifying the original
+            const newElement = { ...element };
+            
+            // Make sure props exists
+            if (!newElement.props) {
+                newElement.props = {};
+            }
+            
+            // Add data attributes to the props
+            props.attributes.dataAttributes.forEach(attr => {
+                if (attr.name && attr.value) {
+                    newElement.props[`data-${attr.name}`] = attr.value;
+                }
+            });
+            
+            return newElement;
+        };
+
+        // Add the dataAttributes attribute to all blocks
         settings.attributes = {
             ...settings.attributes,
             dataAttributes: {
                 type: 'array',
                 default: [],
-                source: 'meta',
             },
         };
 
@@ -29,21 +59,21 @@ addFilter(
     }
 );
 
-// Add save content
-addFilter(
-    'blocks.getSaveContent.extraProps',
-    'custom-block-attributes/save-props',
-    (extraProps, blockType, attributes) => {
-        if (attributes.dataAttributes) {
-            attributes.dataAttributes.forEach(attr => {
-                if (attr.name && attr.value) {
-                    extraProps[`data-${attr.name}`] = attr.value;
-                }
-            });
-        }
-        return extraProps;
-    }
-);
+// We can remove this filter since we're handling it in the save function now
+// addFilter(
+//     'blocks.getSaveContent.extraProps',
+//     'custom-block-attributes/save-props',
+//     (extraProps, blockType, attributes) => {
+//         if (attributes.dataAttributes && attributes.dataAttributes.length > 0) {
+//             attributes.dataAttributes.forEach(attr => {
+//                 if (attr.name && attr.value) {
+//                     extraProps[`data-${attr.name}`] = attr.value;
+//                 }
+//             });
+//         }
+//         return extraProps;
+//     }
+// );
 
 // Higher order component to add custom inspector controls
 const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
@@ -85,20 +115,24 @@ const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
                         initialOpen={false}
                     >
                         {/* Display existing attributes */}
-                        {dataAttributes.map((attr, index) => (
-                            <div key={index} style={{ marginBottom: '10px' }}>
-                                <div>
-                                    data-{attr.name}: {attr.value}
-                                    <Button
-                                        isDestructive
-                                        onClick={() => removeAttribute(index)}
-                                        style={{ marginLeft: '10px' }}
-                                    >
-                                        Remove
-                                    </Button>
+                        {dataAttributes && dataAttributes.length > 0 ? (
+                            dataAttributes.map((attr, index) => (
+                                <div key={index} style={{ marginBottom: '10px' }}>
+                                    <div>
+                                        data-{attr.name}: {attr.value}
+                                        <Button
+                                            isDestructive
+                                            onClick={() => removeAttribute(index)}
+                                            style={{ marginLeft: '10px' }}
+                                        >
+                                            Remove
+                                        </Button>
+                                    </div>
                                 </div>
-                            </div>
-                        ))}
+                            ))
+                        ) : (
+                            <p>No custom attributes added yet.</p>
+                        )}
 
                         {/* Add new attribute form */}
                         <TextControl
