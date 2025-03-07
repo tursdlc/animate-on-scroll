@@ -1,0 +1,12 @@
+{
+    "name": "custom-block-attributes",
+    "version": "1.0.0",
+    "description": "WordPress plugin for adding custom data attributes to blocks",
+    "scripts": {
+        "build": "wp-scripts build",
+        "start": "wp-scripts start"
+    },
+    "devDependencies": {
+        "@wordpress/scripts": "^26.0.0"
+    }
+} 
