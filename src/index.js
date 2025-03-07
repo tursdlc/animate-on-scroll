@@ -1,8 +1,8 @@
 import { addFilter } from '@wordpress/hooks';
 import { createHigherOrderComponent } from '@wordpress/compose';
 import { InspectorControls } from '@wordpress/block-editor';
-import { PanelBody, Button, TextControl, SelectControl, RangeControl } from '@wordpress/components';
-import { useState } from '@wordpress/element';
+import { PanelBody, Button, SelectControl, RangeControl } from '@wordpress/components';
+import { useState, useEffect } from '@wordpress/element';
 
 // Register the dataAttributes for all blocks
 addFilter(
@@ -63,12 +63,26 @@ addFilter(
 const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
     return (props) => {
         const { attributes, setAttributes } = props;
-        const [newAttrName, setNewAttrName] = useState('');
-        const [newAttrValue, setNewAttrValue] = useState('');
-        const [showSalOptions, setShowSalOptions] = useState(false);
-
+        
         // Initialize dataAttributes if it doesn't exist
         const dataAttributes = attributes.dataAttributes || [];
+        
+        // Find existing SAL attributes
+        const getSalAttribute = (name) => {
+            const attr = dataAttributes.find(attr => attr.name === name);
+            return attr ? attr.value : '';
+        };
+        
+        // Check if SAL animation is enabled
+        const hasSalAnimation = Boolean(getSalAttribute('sal'));
+        
+        // Set initial state based on whether animation exists
+        const [showAnimationControls, setShowAnimationControls] = useState(hasSalAnimation);
+        
+        // Update state when attributes change
+        useEffect(() => {
+            setShowAnimationControls(Boolean(getSalAttribute('sal')));
+        }, [attributes.dataAttributes]);
 
         // SAL animation options
         const animationOptions = [
@@ -101,12 +115,6 @@ const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
             { label: 'Ease In Out', value: 'ease-in-out' },
         ];
 
-        // Find existing SAL attributes
-        const getSalAttribute = (name) => {
-            const attr = dataAttributes.find(attr => attr.name === name);
-            return attr ? attr.value : '';
-        };
-
         // Add or update a SAL attribute
         const updateSalAttribute = (name, value) => {
             const newAttributes = [...dataAttributes];
@@ -126,33 +134,27 @@ const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
             setAttributes({ dataAttributes: newAttributes });
         };
 
-        const addAttribute = () => {
-            if (!newAttrName) return;
-
-            const newAttributes = [
-                ...dataAttributes,
-                {
-                    name: newAttrName,
-                    value: newAttrValue
-                }
-            ];
-
+        // Remove all SAL attributes
+        const removeSalAnimation = () => {
+            const newAttributes = dataAttributes.filter(attr => 
+                !attr.name.startsWith('sal')
+            );
             setAttributes({ dataAttributes: newAttributes });
-            setNewAttrName('');
-            setNewAttrValue('');
-        };
-
-        const removeAttribute = (index) => {
-            const newAttributes = dataAttributes.filter((_, i) => i !== index);
-            setAttributes({ dataAttributes: newAttributes });
+            setShowAnimationControls(false);
         };
 
         // Add SAL animation preset
         const addSalAnimation = () => {
-            updateSalAttribute('sal', 'fade');
-            updateSalAttribute('sal-duration', '500');
-            updateSalAttribute('sal-delay', '0');
-            updateSalAttribute('sal-easing', 'ease-out');
+            const newAttributes = [
+                ...dataAttributes.filter(attr => !attr.name.startsWith('sal')),
+                { name: 'sal', value: 'fade' },
+                { name: 'sal-duration', value: '500' },
+                { name: 'sal-delay', value: '0' },
+                { name: 'sal-easing', value: 'ease-out' }
+            ];
+            
+            setAttributes({ dataAttributes: newAttributes });
+            setShowAnimationControls(true);
         };
 
         return (
@@ -160,25 +162,24 @@ const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
                 <BlockEdit {...props} />
                 <InspectorControls>
                     <PanelBody
-                        title="Custom Data Attributes"
+                        title="Scroll Animation"
                         initialOpen={false}
                     >
-                        {/* SAL Animation Options */}
-                        <Button 
-                            isPrimary 
-                            onClick={() => {
-                                if (!getSalAttribute('sal')) {
-                                    addSalAnimation();
-                                }
-                                setShowSalOptions(!showSalOptions);
-                            }}
-                            style={{ marginBottom: '10px' }}
-                        >
-                            {getSalAttribute('sal') ? 'Edit SAL Animation' : 'Add SAL Animation'}
-                        </Button>
-
-                        {(showSalOptions || getSalAttribute('sal')) && (
-                            <div style={{ padding: '10px', backgroundColor: '#f0f0f0', marginBottom: '15px' }}>
+                        {!showAnimationControls ? (
+                            <Button 
+                                isPrimary 
+                                onClick={addSalAnimation}
+                                style={{ marginBottom: '10px', width: '100%' }}
+                            >
+                                Add Scroll Animation
+                            </Button>
+                        ) : (
+                            <div style={{ 
+                                padding: '15px', 
+                                backgroundColor: '#f0f0f0', 
+                                marginBottom: '15px',
+                                borderRadius: '4px'
+                            }}>
                                 <SelectControl
                                     label="Animation Type"
                                     value={getSalAttribute('sal')}
@@ -208,51 +209,16 @@ const withCustomAttributes = createHigherOrderComponent((BlockEdit) => {
                                     options={easingOptions}
                                     onChange={(value) => updateSalAttribute('sal-easing', value)}
                                 />
+
+                                <Button 
+                                    isDestructive
+                                    onClick={removeSalAnimation}
+                                    style={{ marginTop: '15px' }}
+                                >
+                                    Remove Animation
+                                </Button>
                             </div>
                         )}
-
-                        {/* Display existing attributes */}
-                        <h3>Custom Attributes</h3>
-                        {dataAttributes && dataAttributes.length > 0 ? (
-                            dataAttributes.map((attr, index) => (
-                                <div key={index} style={{ marginBottom: '10px' }}>
-                                    <div>
-                                        data-{attr.name}: {attr.value}
-                                        <Button
-                                            isDestructive
-                                            onClick={() => removeAttribute(index)}
-                                            style={{ marginLeft: '10px' }}
-                                        >
-                                            Remove
-                                        </Button>
-                                    </div>
-                                </div>
-                            ))
-                        ) : (
-                            <p>No custom attributes added yet.</p>
-                        )}
-
-                        {/* Add new attribute form */}
-                        <h3>Add Custom Attribute</h3>
-                        <TextControl
-                            label="Attribute Name"
-                            value={newAttrName}
-                            onChange={setNewAttrName}
-                            placeholder="Enter attribute name"
-                        />
-                        <TextControl
-                            label="Attribute Value"
-                            value={newAttrValue}
-                            onChange={setNewAttrValue}
-                            placeholder="Enter attribute value"
-                        />
-                        <Button
-                            isPrimary
-                            onClick={addAttribute}
-                            disabled={!newAttrName}
-                        >
-                            Add Attribute
-                        </Button>
                     </PanelBody>
                 </InspectorControls>
             </>

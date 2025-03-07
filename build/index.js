@@ -213,12 +213,26 @@ const withCustomAttributes = (0,_wordpress_compose__WEBPACK_IMPORTED_MODULE_2__.
       attributes,
       setAttributes
     } = props;
-    const [newAttrName, setNewAttrName] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_5__.useState)('');
-    const [newAttrValue, setNewAttrValue] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_5__.useState)('');
-    const [showSalOptions, setShowSalOptions] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_5__.useState)(false);
 
     // Initialize dataAttributes if it doesn't exist
     const dataAttributes = attributes.dataAttributes || [];
+
+    // Find existing SAL attributes
+    const getSalAttribute = name => {
+      const attr = dataAttributes.find(attr => attr.name === name);
+      return attr ? attr.value : '';
+    };
+
+    // Check if SAL animation is enabled
+    const hasSalAnimation = Boolean(getSalAttribute('sal'));
+
+    // Set initial state based on whether animation exists
+    const [showAnimationControls, setShowAnimationControls] = (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_5__.useState)(hasSalAnimation);
+
+    // Update state when attributes change
+    (0,_wordpress_element__WEBPACK_IMPORTED_MODULE_5__.useEffect)(() => {
+      setShowAnimationControls(Boolean(getSalAttribute('sal')));
+    }, [attributes.dataAttributes]);
 
     // SAL animation options
     const animationOptions = [{
@@ -288,12 +302,6 @@ const withCustomAttributes = (0,_wordpress_compose__WEBPACK_IMPORTED_MODULE_2__.
       value: 'ease-in-out'
     }];
 
-    // Find existing SAL attributes
-    const getSalAttribute = name => {
-      const attr = dataAttributes.find(attr => attr.name === name);
-      return attr ? attr.value : '';
-    };
-
     // Add or update a SAL attribute
     const updateSalAttribute = (name, value) => {
       const newAttributes = [...dataAttributes];
@@ -315,53 +323,54 @@ const withCustomAttributes = (0,_wordpress_compose__WEBPACK_IMPORTED_MODULE_2__.
         dataAttributes: newAttributes
       });
     };
-    const addAttribute = () => {
-      if (!newAttrName) return;
-      const newAttributes = [...dataAttributes, {
-        name: newAttrName,
-        value: newAttrValue
-      }];
+
+    // Remove all SAL attributes
+    const removeSalAnimation = () => {
+      const newAttributes = dataAttributes.filter(attr => !attr.name.startsWith('sal'));
       setAttributes({
         dataAttributes: newAttributes
       });
-      setNewAttrName('');
-      setNewAttrValue('');
-    };
-    const removeAttribute = index => {
-      const newAttributes = dataAttributes.filter((_, i) => i !== index);
-      setAttributes({
-        dataAttributes: newAttributes
-      });
+      setShowAnimationControls(false);
     };
 
     // Add SAL animation preset
     const addSalAnimation = () => {
-      updateSalAttribute('sal', 'fade');
-      updateSalAttribute('sal-duration', '500');
-      updateSalAttribute('sal-delay', '0');
-      updateSalAttribute('sal-easing', 'ease-out');
+      const newAttributes = [...dataAttributes.filter(attr => !attr.name.startsWith('sal')), {
+        name: 'sal',
+        value: 'fade'
+      }, {
+        name: 'sal-duration',
+        value: '500'
+      }, {
+        name: 'sal-delay',
+        value: '0'
+      }, {
+        name: 'sal-easing',
+        value: 'ease-out'
+      }];
+      setAttributes({
+        dataAttributes: newAttributes
+      });
+      setShowAnimationControls(true);
     };
     return (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(react__WEBPACK_IMPORTED_MODULE_0__.Fragment, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(BlockEdit, {
       ...props
     }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_block_editor__WEBPACK_IMPORTED_MODULE_3__.InspectorControls, null, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.PanelBody, {
-      title: "Custom Data Attributes",
+      title: "Scroll Animation",
       initialOpen: false
-    }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Button, {
+    }, !showAnimationControls ? (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Button, {
       isPrimary: true,
-      onClick: () => {
-        if (!getSalAttribute('sal')) {
-          addSalAnimation();
-        }
-        setShowSalOptions(!showSalOptions);
-      },
+      onClick: addSalAnimation,
       style: {
-        marginBottom: '10px'
+        marginBottom: '10px',
+        width: '100%'
       }
-    }, getSalAttribute('sal') ? 'Edit SAL Animation' : 'Add SAL Animation'), (showSalOptions || getSalAttribute('sal')) && (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
+    }, "Add Scroll Animation") : (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
       style: {
-        padding: '10px',
+        padding: '15px',
         backgroundColor: '#f0f0f0',
-        marginBottom: '15px'
+        marginBottom: '15px',
+        borderRadius: '4px'
       }
     }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.SelectControl, {
       label: "Animation Type",
@@ -385,32 +394,13 @@ const withCustomAttributes = (0,_wordpress_compose__WEBPACK_IMPORTED_MODULE_2__.
       value: getSalAttribute('sal-easing'),
       options: easingOptions,
       onChange: value => updateSalAttribute('sal-easing', value)
-    })), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("h3", null, "Custom Attributes"), dataAttributes && dataAttributes.length > 0 ? dataAttributes.map((attr, index) => (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", {
-      key: index,
-      style: {
-        marginBottom: '10px'
-      }
-    }, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("div", null, "data-", attr.name, ": ", attr.value, (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Button, {
-      isDestructive: true,
-      onClick: () => removeAttribute(index),
-      style: {
-        marginLeft: '10px'
-      }
-    }, "Remove")))) : (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("p", null, "No custom attributes added yet."), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)("h3", null, "Add Custom Attribute"), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.TextControl, {
-      label: "Attribute Name",
-      value: newAttrName,
-      onChange: setNewAttrName,
-      placeholder: "Enter attribute name"
-    }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.TextControl, {
-      label: "Attribute Value",
-      value: newAttrValue,
-      onChange: setNewAttrValue,
-      placeholder: "Enter attribute value"
     }), (0,react__WEBPACK_IMPORTED_MODULE_0__.createElement)(_wordpress_components__WEBPACK_IMPORTED_MODULE_4__.Button, {
-      isPrimary: true,
-      onClick: addAttribute,
-      disabled: !newAttrName
-    }, "Add Attribute"))));
+      isDestructive: true,
+      onClick: removeSalAnimation,
+      style: {
+        marginTop: '15px'
+      }
+    }, "Remove Animation")))));
   };
 }, 'withCustomAttributes');
 
